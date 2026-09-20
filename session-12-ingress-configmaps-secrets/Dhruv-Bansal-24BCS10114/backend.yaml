@@ -23,6 +23,14 @@ spec:
                 name: database-config
           ports:
             - containerPort: 80
+          volumeMounts:
+            - name: page
+              mountPath: /usr/share/nginx/html/index.html
+              subPath: backend.html
+      volumes:
+        - name: page
+          configMap:
+            name: app-config
 ---
 apiVersion: v1
 kind: Service
