@@ -1,0 +1,26 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: web-deployment
+  namespace: session10-demo
+spec:
+  replicas: 3
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 0
+      maxSurge: 1
+  selector:
+    matchLabels:
+      app: deployment-web
+  template:
+    metadata:
+      labels:
+        app: deployment-web
+        version: v2
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.28-alpine
+          ports:
+            - containerPort: 80
