@@ -7,3 +7,13 @@ data:
   ENVIRONMENT: development
   LOG_LEVEL: info
   APP_PORT: "80"
+  frontend.html: |
+    <!doctype html>
+    <html>
+      <body>
+        <h1>Session 12 frontend</h1>
+        <p>This page is served through the root Ingress path.</p>
+      </body>
+    </html>
+  backend.html: |
+    {"service":"backend","path":"/api","status":"running"}
