@@ -6,7 +6,7 @@ metadata:
 spec:
   clusterIP: None
   selector:
-    app: backend
+    app: headless-backend
   ports:
     - port: 80
       targetPort: 80
