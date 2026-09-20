@@ -1,0 +1,23 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: app-stable
+  namespace: session10-demo
+spec:
+  replicas: 4
+  selector:
+    matchLabels:
+      app: canary-demo
+      track: stable
+  template:
+    metadata:
+      labels:
+        app: canary-demo
+        track: stable
+        version: v1
+    spec:
+      containers:
+        - name: nginx
+          image: nginx:1.27-alpine
+          ports:
+            - containerPort: 80
