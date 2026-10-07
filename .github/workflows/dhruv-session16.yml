@@ -1,0 +1,52 @@
+name: Dhruv Session 16 CI
+
+on:
+  push:
+    paths:
+      - "session-16-github-actions/Dhruv-Bansal-24BCS10114/**"
+      - ".github/workflows/dhruv-session16.yml"
+  pull_request:
+    paths:
+      - "session-16-github-actions/Dhruv-Bansal-24BCS10114/**"
+      - ".github/workflows/dhruv-session16.yml"
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: session-16-github-actions/Dhruv-Bansal-24BCS10114
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: python -m unittest discover -s tests -v
+
+  file-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Reject sensitive files in this exercise
+        shell: bash
+        run: |
+          if find session-16-github-actions/Dhruv-Bansal-24BCS10114 -type f \( -name '.env' -o -name '*.pem' -o -name '*.key' \) | grep -q .; then
+            echo 'Sensitive file found in the exercise folder'
+            exit 1
+          fi
+
+  build:
+    needs: [test, file-check]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Package the calculator
+        shell: bash
+        run: |
+          mkdir -p build
+          cp session-16-github-actions/Dhruv-Bansal-24BCS10114/app/calculator.py build/
+          printf 'Commit: %s\n' "$GITHUB_SHA" > build/build-info.txt
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dhruv-calculator
+          path: build/
