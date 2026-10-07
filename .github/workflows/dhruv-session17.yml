@@ -1,0 +1,109 @@
+name: Dhruv session 17 DevSecOps
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: Publish the scanned image to GHCR
+        type: boolean
+        default: false
+      deploy:
+        description: Deploy the published image (requires KUBECONFIG secret)
+        type: boolean
+        default: false
+  push:
+    paths:
+      - 'session-17-devsecops/Dhruv-Bansal-24BCS10114/**'
+      - '.github/workflows/dhruv-session17.yml'
+  pull_request:
+    paths:
+      - 'session-17-devsecops/Dhruv-Bansal-24BCS10114/**'
+      - '.github/workflows/dhruv-session17.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: session-17-devsecops/Dhruv-Bansal-24BCS10114
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: pip install -r requirements.txt
+      - run: python -m unittest discover -s tests -v
+
+  sast:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: github/codeql-action/init@v4
+        with:
+          languages: python
+      - uses: github/codeql-action/analyze@v4
+
+  sca:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install pip-audit
+      - run: pip-audit -r session-17-devsecops/Dhruv-Bansal-24BCS10114/requirements.txt
+
+  image-scan:
+    needs: [test, sast, sca]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t dhruv-devsecops:ci session-17-devsecops/Dhruv-Bansal-24BCS10114
+      - uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: dhruv-devsecops:ci
+          format: table
+          exit-code: '1'
+          severity: HIGH,CRITICAL
+
+  publish:
+    if: github.event_name == 'workflow_dispatch' && inputs.publish
+    needs: image-scan
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - run: |
+          docker build -t ghcr.io/dhruvb2028/dhruv-devsecops:${{ github.sha }} session-17-devsecops/Dhruv-Bansal-24BCS10114
+          docker push ghcr.io/dhruvb2028/dhruv-devsecops:${{ github.sha }}
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch' && inputs.deploy && inputs.publish
+    needs: publish
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Configure Kubernetes access
+        env:
+          KUBECONFIG_DATA: ${{ secrets.KUBECONFIG }}
+        run: |
+          test -n "$KUBECONFIG_DATA"
+          printf '%s' "$KUBECONFIG_DATA" > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+          echo "KUBECONFIG=$RUNNER_TEMP/kubeconfig" >> "$GITHUB_ENV"
+      - run: |
+          kubectl apply -f session-17-devsecops/Dhruv-Bansal-24BCS10114/k8s/
+          kubectl set image deployment/dhruv-devsecops web=ghcr.io/dhruvb2028/dhruv-devsecops:${{ github.sha }}
+          kubectl rollout status deployment/dhruv-devsecops --timeout=120s
