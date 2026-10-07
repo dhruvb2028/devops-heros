@@ -1,0 +1,20 @@
+apiVersion: argoproj.io/v1alpha1
+kind: Application
+metadata:
+  name: dhruv-session20
+  namespace: argocd
+spec:
+  project: default
+  source:
+    repoURL: https://github.com/dhruvb2028/devops-heros.git
+    targetRevision: main
+    path: session20-monitoring-observability-gitops/Dhruv-Bansal-24BCS10114/app
+  destination:
+    server: https://kubernetes.default.svc
+    namespace: dhruv-session20
+  syncPolicy:
+    automated:
+      prune: true
+      selfHeal: true
+    syncOptions:
+      - CreateNamespace=true
