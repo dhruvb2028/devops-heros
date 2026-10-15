@@ -25,6 +25,10 @@ kubectl get pod nginx-basics -n session9-demo --show-labels
 
 The label `app=nginx-basics` identifies the Pod. I kept the example in its own namespace so it does not mix with other practice workloads.
 
+The Pod reached Ready in a temporary kind cluster. This is the `kubectl` output from the [run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803634387/job/116658761288).
+
+![Session 9 Kubernetes run](screenshots/session-9.png)
+
 ## Clean up
 
 ```bash
