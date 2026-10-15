@@ -11,3 +11,7 @@ bash cherry-pick-lab.sh --self-test
 ```
 
 I used `git status`, `git log --oneline --graph --all`, and `git diff --staged` to check each step before moving ahead.
+
+The self-test completed on a Linux GitHub Actions runner ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803157774/job/116657129993)). This is the captured command output.
+
+![Cherry-pick exercise output](screenshots/session-5.png)
