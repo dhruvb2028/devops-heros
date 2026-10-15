@@ -67,7 +67,8 @@ jobs:
                 kubectl rollout status statefulset/web -n "$NAMESPACE" --timeout=180s
                 kubectl wait --for=condition=Ready pod/dns-client -n "$NAMESPACE" --timeout=180s
                 kubectl exec -n "$NAMESPACE" dns-client -- wget -qO- http://backend-clusterip | grep 'Welcome to nginx'
-                kubectl exec -n "$NAMESPACE" dns-client -- nslookup backend-headless
+                kubectl exec -n "$NAMESPACE" dns-client -- wget -qO- http://web-0.backend-headless.session11-demo.svc.cluster.local | grep 'Welcome to nginx'
+                kubectl get endpoints backend-headless -n "$NAMESPACE"
                 kubectl get pods,svc,endpoints -n "$NAMESPACE"
                 ;;
               12)
