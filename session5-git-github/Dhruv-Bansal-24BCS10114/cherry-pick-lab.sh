@@ -20,6 +20,6 @@ git -C "$repo" add healthcheck.txt
 git -C "$repo" commit -qm 'Add health check note'
 picked_commit="$(git -C "$repo" rev-parse HEAD)"
 git -C "$repo" switch -q main
-git -C "$repo" cherry-pick -q "$picked_commit"
+git -C "$repo" cherry-pick "$picked_commit"
 [[ "$(cat "$repo/healthcheck.txt")" == 'healthcheck' ]]
 echo 'Cherry-pick self-test passed.'
