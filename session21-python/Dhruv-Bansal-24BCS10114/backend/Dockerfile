@@ -1,9 +1,9 @@
-FROM python:3.12-slim
+FROM python:3.12-alpine3.24
 
 WORKDIR /app
 ENV PYTHONDONTWRITEBYTECODE=1 PYTHONUNBUFFERED=1
 COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt && useradd --create-home --uid 10001 appuser
+RUN apk upgrade --no-cache && pip install --no-cache-dir -r requirements.txt && adduser -D -u 10001 appuser
 COPY --chown=appuser:appuser app ./app
 COPY --chown=appuser:appuser alembic ./alembic
 COPY --chown=appuser:appuser alembic.ini ./alembic.ini
