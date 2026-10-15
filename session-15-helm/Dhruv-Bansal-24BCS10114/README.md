@@ -24,3 +24,7 @@ helm uninstall notes-dev
 ```
 
 `helm template` lets me inspect the generated resources before installing them. The deliberately bad image tag should make the upgrade fail; `helm history` shows the revisions and `helm rollback` restores revision 1. The page is served from the ConfigMap mounted into NGINX, so the development and production values produce visibly different content. A pod-template checksum restarts Pods when the page values change.
+
+I also installed the chart in a temporary kind cluster, upgraded to the production values, and rolled back to revision 1. The [run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804541359/job/116661871108) shows the release history and ready Deployment.
+
+![Helm release output](screenshots/session-15.png)

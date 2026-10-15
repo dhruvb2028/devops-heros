@@ -19,3 +19,7 @@ terraform destroy
 ```
 
 After apply, `terraform state list` should include `local_file.lab_note`. After destroy, the generated file is removed and state no longer lists it. `.gitignore` keeps the downloaded provider, local state and generated output out of the submission. Session 19 uses the AWS provider for the cloud networking part.
+
+I ran `init`, `validate`, `plan`, `apply`, and `destroy` on a GitHub Actions runner. The file was created and then removed ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804432107/job/116661500399)).
+
+![Session 18 Terraform output](screenshots/session-18.png)

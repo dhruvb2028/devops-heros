@@ -14,3 +14,7 @@ python -m app.calculator
 The workflow is at the repository root in `.github/workflows/dhruv-session16.yml`, because GitHub Actions does not run workflow files nested inside a session folder. It uses only the files in this folder and does not deploy anything.
 
 I can intentionally change `add` to return `a + b + 1` to see the test fail. The build job then stays blocked. Restoring the correct addition makes all jobs pass again.
+
+The three tests and calculator example ran successfully on a Linux runner ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804432107/job/116661500109)).
+
+![Session 16 test output](screenshots/session-16.png)

@@ -48,6 +48,10 @@ kubectl get endpoints broken-web-service -n session14-demo
 
 `troubleshooting-notes.md` contains the expected observation, root cause, and fix for each case. The Service check is important: a healthy Pod still receives no traffic if its label does not match the Service selector.
 
+In the [kind run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804541359/job/116661870913), the broken Pod entered `CrashLoopBackOff`; after applying the fixed manifest it reached `Running`.
+
+![Broken and fixed Pod output](screenshots/session-14.png)
+
 ## Clean up
 
 ```bash

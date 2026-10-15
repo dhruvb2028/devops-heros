@@ -8,4 +8,6 @@ I would check the deployment with `kubectl get deployment,pods,service -n dhruv-
 
 The observability distinction from this session: metrics are measurements such as request count or CPU use; logs record individual events; traces follow a request between services. Prometheus collects metrics and Grafana displays them. The pod logs above are useful for debugging, but this Nginx demo does not yet export application-specific Prometheus metrics or traces.
 
-These files are only local for review right now. Since they have not been committed or pushed, Argo CD cannot find this path in Git yet, and no sync/self-heal result is claimed.
+These files are committed in the repository. I ran the Deployment and Service in a temporary kind cluster; both Pods reached Ready ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804541359/job/116661870702)). I did not install Argo CD or monitoring dashboards, so this does not show sync, self-healing, metrics, or traces.
+
+![Session 20 cluster output](screenshots/session-20.png)

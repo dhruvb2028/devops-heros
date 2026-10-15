@@ -52,6 +52,10 @@ kubectl describe hpa storage-web -n session13-demo
 
 The HPA scales from two to five Pods when average CPU passes 50%. It needs Metrics Server, so I check `kubectl top pods -n session13-demo` before testing load.
 
+The [kind run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804541359/job/116661870890) bound the PVC, wrote and read the file, and started the web and probe Pods. The HPA resource was created, but its CPU target was `unknown` without Metrics Server; this screenshot is not proof of autoscaling.
+
+![Session 13 cluster output](screenshots/session-13.png)
+
 The Startup probe allows time for startup. The Readiness probe decides if traffic should reach a Pod. The Liveness probe restarts a container that remains unhealthy.
 
 To generate load after Metrics Server is available:
