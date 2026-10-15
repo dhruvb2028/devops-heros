@@ -1,0 +1,35 @@
+name: Session 17 Docker demo
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  demo:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build and run the API
+        run: |
+          docker build -t dhruv-devsecops:demo session-17-devsecops/Dhruv-Bansal-24BCS10114
+          docker run -d --name dhruv-devsecops-demo -p 5000:5000 dhruv-devsecops:demo
+          for attempt in {1..30}; do
+            if curl --fail --silent http://127.0.0.1:5000/health; then break; fi
+            sleep 2
+          done
+          curl --fail --silent --show-error http://127.0.0.1:5000/
+          curl --fail --silent --show-error -H 'Content-Type: application/json' \
+            -d '{"numbers":[2,3]}' http://127.0.0.1:5000/total
+      - name: Capture running page
+        run: |
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1200,700' --full-page \
+            http://127.0.0.1:5000/ screenshots/session-17.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-17-docker-page
+          path: screenshots/session-17.png
+          retention-days: 1
