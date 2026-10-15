@@ -34,3 +34,7 @@ sudo deluser --remove-home labuser
 ```
 
 I checked the command output before changing permissions, users, or running processes.
+
+The [GitHub Actions run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803157774/job/116657129646) ran the link exercise on Linux. This screenshot shows its actual output.
+
+![Linux link exercise output](screenshots/session-2.png)
