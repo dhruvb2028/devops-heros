@@ -53,6 +53,12 @@ On each push to `main`, the workflow also starts a temporary kind cluster on a s
 
 The [demo run](https://github.com/dhruvb2028/devops-heros/actions/runs/38798265768) passed on commit `9da8c61`. The API and frontend tests passed, both images built and passed their Trivy scans, and both were published to GHCR. In the kind job, PostgreSQL, two backend Pods and two frontend Pods were all `1/1 Running`; the database PVC was `Bound`. The job then created an equipment item, checked it out and returned it through the frontend Service, checked the counts, and read `/metrics` from the backend. Its final output was `Kubernetes smoke test passed`.
 
+The [screenshot run](https://github.com/dhruvb2028/devops-heros/actions/runs/38799731454) used Chromium against the app running in the temporary kind cluster. The images below show the equipment list before and after checking out the thermal camera.
+
+![Equipment catalog with three available items](screenshots/catalog.png)
+
+![Thermal camera checked out to a student](screenshots/checked-out.png)
+
 The workflow file belongs at the repository root, so it is included separately from this folder. Its separate production deployment job is manual and expects `KUBECONFIG_B64` and `LABGEAR_DB_PASSWORD` GitHub environment secrets. Do not run that job unless you have a cluster you intend to use and pay for.
 
 ## AWS and Kubernetes
@@ -108,9 +114,9 @@ Check Prometheus Targets for an `UP` LabGear endpoint, then open the Grafana das
 
 ## Remaining live-demo evidence
 
-- Browser screenshots of the app and a local `docker compose up --build` run, if required for submission.
+- A local `docker compose up --build` run, if required for submission.
 - An AWS plan, EKS deployment and `terraform destroy` only if a paid AWS demonstration is approved.
 - A Prometheus target marked `UP` and a populated Grafana panel on a cluster with monitoring installed.
 - The two investigations in `troubleshooting/README.md`.
 
-The Actions link above is evidence of a temporary Kubernetes deployment, not of AWS EKS, a permanent public site, or Grafana. No screenshots are attached here.
+The screenshots and Actions links above are evidence of a temporary Kubernetes deployment, not of a local Docker Desktop run, AWS EKS, a permanent public site, or Grafana.
