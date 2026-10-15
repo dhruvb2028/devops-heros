@@ -1,0 +1,102 @@
+name: Later Kubernetes session demos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        session: [13, 14, 15, 20]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1.14.0
+      - name: Run exercise
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          set -euo pipefail
+          {
+            echo '$ kubectl get nodes'
+            kubectl get nodes
+            case "$SESSION" in
+              13)
+                cd session-13-storage-hpa-probes/Dhruv-Bansal-24BCS10114
+                kubectl apply -f namespace.yaml -f persistent-volume.yaml -f persistent-claim.yaml -f storage-pod.yaml
+                kubectl wait --for=condition=Ready pod/persistent-storage-demo -n session13-demo --timeout=180s
+                kubectl exec -n session13-demo persistent-storage-demo -- sh -c 'echo session13 > /data/message.txt'
+                kubectl exec -n session13-demo persistent-storage-demo -- cat /data/message.txt
+                kubectl apply -f web-deployment.yaml -f web-service.yaml -f web-hpa.yaml -f probe-pod.yaml
+                kubectl rollout status deployment/storage-web -n session13-demo --timeout=180s
+                kubectl get pv,pvc -n session13-demo
+                kubectl get deploy,pods,hpa -n session13-demo
+                ;;
+              14)
+                cd session-14-kubernetes-troubleshooting/Dhruv-Bansal-24BCS10114
+                kubectl apply -f namespace.yaml -f healthy-deployment.yaml -f healthy-service.yaml
+                kubectl rollout status deployment/troubleshooting-web -n session14-demo --timeout=180s
+                kubectl apply -f crashloop-broken.yaml
+                sleep 12
+                echo '$ kubectl get pod crash-demo (broken example)'
+                kubectl get pod crash-demo -n session14-demo
+                kubectl logs crash-demo -n session14-demo || true
+                kubectl delete pod crash-demo -n session14-demo --wait=true
+                kubectl apply -f crashloop-fixed.yaml
+                kubectl wait --for=condition=Ready pod/crash-demo -n session14-demo --timeout=180s
+                echo '$ kubectl get pod crash-demo (fixed example)'
+                kubectl get pod crash-demo -n session14-demo
+                kubectl get pods,svc,endpoints -n session14-demo
+                ;;
+              15)
+                cd session-15-helm/Dhruv-Bansal-24BCS10114
+                helm lint notes-chart
+                helm install notes-dev notes-chart
+                kubectl rollout status deployment/notes-dev-notes --timeout=180s
+                helm upgrade notes-dev notes-chart -f notes-chart/values-prod.yaml
+                kubectl rollout status deployment/notes-dev-notes --timeout=180s
+                helm history notes-dev
+                helm rollback notes-dev 1
+                kubectl rollout status deployment/notes-dev-notes --timeout=180s
+                helm history notes-dev
+                kubectl get deploy,svc,configmap
+                ;;
+              20)
+                cd session20-monitoring-observability-gitops/Dhruv-Bansal-24BCS10114
+                kubectl apply -f app/namespace.yaml -f app/deployment.yaml -f app/service.yaml
+                kubectl rollout status deployment/notes-web -n dhruv-session20 --timeout=180s
+                kubectl get deploy,pods,svc -n dhruv-session20
+                kubectl logs deployment/notes-web -n dhruv-session20 --tail=10
+                echo 'Argo CD sync and monitoring dashboards were not run in this cluster.'
+                ;;
+            esac
+          } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+      - name: Capture output
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          python - <<'PY'
+          import html
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ['RUNNER_TEMP'], 'output.txt').read_text(errors='replace')
+          page = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                  'body{margin:0;padding:24px;background:#151b23;color:#e6edf3;font:16px/1.5 monospace}'
+                  'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><pre>'
+                  + html.escape(output) + '</pre></body></html>')
+          Path(os.environ['RUNNER_TEMP'], 'output.html').write_text(page, encoding='utf-8')
+          PY
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1200,700' --full-page \
+            "file://$RUNNER_TEMP/output.html" "screenshots/session-$SESSION.png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-${{ matrix.session }}-kubernetes-output
+          path: screenshots/*.png
+          retention-days: 1
