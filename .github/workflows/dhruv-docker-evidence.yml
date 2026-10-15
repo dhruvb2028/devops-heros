@@ -1,0 +1,95 @@
+name: Docker session demos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - session: 6
+            ref: session6-7-dhruv-bansal-24bcs10114
+          - session: 7
+            ref: session6-7-dhruv-bansal-24bcs10114
+          - session: 8
+            ref: session8-dhruv-bansal-24bcs10114
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - name: Run Session 6 containers
+        if: matrix.session == 6
+        run: |
+          set -euo pipefail
+          base=session6-7-docker/Dhruv-Bansal-24BCS10114/session6
+          docker build -t session6-python "$base/hello-python"
+          docker build -t session6-react "$base/hello-react"
+          docker run -d --rm --name session6-python -p 8080:8080 session6-python
+          docker run -d --rm --name session6-react -p 8084:80 session6-react
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:8080 | grep -q 'Session 6 container'; then break; fi
+            sleep 2
+          done
+          curl --fail http://localhost:8080
+          curl --fail --silent http://localhost:8084 | grep -q 'root'
+          docker ps
+      - name: Run Session 7 container
+        if: matrix.session == 7
+        run: |
+          set -euo pipefail
+          base=session6-7-docker/Dhruv-Bansal-24BCS10114/session7
+          docker build -t session7-node "$base/multi-stage-node"
+          docker run -d --rm --name session7-node -p 8081:8081 session7-node
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:8081 | grep -q 'multi-stage Docker image'; then break; fi
+            sleep 2
+          done
+          curl --fail http://localhost:8081
+          docker history session7-node
+          docker ps
+      - name: Run Session 8 stack
+        if: matrix.session == 8
+        run: |
+          set -euo pipefail
+          base=session8-docker-networking-volume/Dhruv-Bansal-24BCS10114
+          docker compose -f "$base/docker-compose.yml" up -d --build --wait
+          curl --fail --silent http://localhost:8082 | grep -q 'Docker networking and volumes'
+          curl --fail --silent http://localhost:8082/api | jq -e '.status == "connected" and .database == "demo"'
+          docker compose -f "$base/docker-compose.yml" ps
+          docker network ls
+          docker volume ls
+      - name: Install browser
+        run: npx --yes playwright@1.64.1 install --with-deps chromium
+      - name: Capture Session 6 pages
+        if: matrix.session == 6
+        run: |
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1280,800' \
+            --wait-for-selector 'text=Hello from React' --full-page \
+            http://localhost:8084 screenshots/react.png
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1280,800' \
+            http://localhost:8080 screenshots/python.png
+      - name: Capture Session 7 page
+        if: matrix.session == 7
+        run: |
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1280,800' \
+            http://localhost:8081 screenshots/node.png
+      - name: Capture Session 8 page
+        if: matrix.session == 8
+        run: |
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1280,800' \
+            --wait-for-selector 'text=connected' --full-page \
+            http://localhost:8082 screenshots/networking.png
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-${{ matrix.session }}-screenshots
+          path: screenshots/*.png
+          retention-days: 1
