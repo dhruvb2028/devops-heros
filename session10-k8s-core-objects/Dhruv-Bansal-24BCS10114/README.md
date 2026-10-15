@@ -65,3 +65,7 @@ kubectl get pods -n session10-demo -l app=recreate-demo -w
 The `Recreate` strategy removes the old pods before starting the new version, so a short period of downtime is expected.
 
 For troubleshooting I used `kubectl describe pod`, `kubectl logs`, and `kubectl rollout status`. To remove everything from this session, run `kubectl delete namespace session10-demo`.
+
+I ran the core objects and rolling update in kind. The [run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803634387/job/116658761514) shows the Deployment reaching three ready replicas after the update.
+
+![Session 10 Kubernetes run](screenshots/session-10.png)
