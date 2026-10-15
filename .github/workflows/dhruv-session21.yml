@@ -69,6 +69,68 @@ jobs:
       - name: Publish ${{ matrix.component }} image
         run: docker push ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }}
 
+  kind-smoke:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: helm/kind-action@v1.14.0
+        with:
+          cluster_name: labgear
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.22.0
+      - name: Build and load images
+        run: |
+          docker build -t labgear-backend:local session21-python/Dhruv-Bansal-24BCS10114/backend
+          docker build -t labgear-frontend:local session21-python/Dhruv-Bansal-24BCS10114/frontend
+          kind load docker-image labgear-backend:local labgear-frontend:local --name labgear
+      - name: Deploy to temporary cluster
+        run: |
+          DB_PASSWORD=$(openssl rand -hex 16)
+          helm upgrade --install labgear session21-python/Dhruv-Bansal-24BCS10114/helm/labgear \
+            --namespace labgear --create-namespace \
+            -f session21-python/Dhruv-Bansal-24BCS10114/helm/labgear/values-dev.yaml \
+            --set ingress.enabled=false --set hpa.enabled=false \
+            --set database.storageSize=1Gi \
+            --set-string database.password="$DB_PASSWORD" \
+            --wait --timeout 7m
+          kubectl get pods,svc,pvc -n labgear
+      - name: Check running app
+        run: |
+          set -euo pipefail
+          kubectl port-forward -n labgear svc/labgear-frontend 3000:8080 > "$RUNNER_TEMP/port-forward.log" 2>&1 &
+          forward_pid=$!
+          trap 'kill "$forward_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:3000/health > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent http://localhost:3000/health
+          curl --fail --silent http://localhost:3000/ | grep -q '<div id="root">'
+          item=$(curl --fail --silent -X POST http://localhost:3000/api/equipment \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"Lab microscope","category":"Microscope","location":"Lab A"}')
+          item_id=$(echo "$item" | jq -r '.id')
+          test "$item_id" != 'null'
+          test "$(curl --fail --silent http://localhost:3000/api/equipment/stats | jq -r '.total')" = 1
+          curl --fail --silent -X POST "http://localhost:3000/api/equipment/$item_id/checkout" \
+            -H 'Content-Type: application/json' \
+            -d '{"borrower":"Demo student","due_date":"2030-12-31"}' | jq -e '.status == "checked_out"'
+          curl --fail --silent -X POST "http://localhost:3000/api/equipment/$item_id/return" | jq -e '.status == "available"'
+          test "$(curl --fail --silent http://localhost:3000/api/equipment/stats | jq -r '.available')" = 1
+          kubectl exec -n labgear deployment/labgear-backend -- python -c \
+            'import urllib.request; body = urllib.request.urlopen("http://localhost:8000/metrics").read(); assert b"http_requests_total" in body or b"http_request_duration_seconds" in body'
+          echo 'Kubernetes smoke test passed'
+      - name: Show cluster state on failure
+        if: failure()
+        run: |
+          kubectl get pods,svc,pvc -n labgear || true
+          kubectl describe pods -n labgear || true
+          kubectl logs -n labgear deployment/labgear-backend --all-containers --tail=100 || true
+          kubectl logs -n labgear deployment/labgear-frontend --all-containers --tail=100 || true
+
   deploy:
     if: github.event_name == 'workflow_dispatch'
     needs: test

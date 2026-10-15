@@ -12,7 +12,7 @@ LabGear tracks shared equipment in college labs. Staff can add items, search the
 | FastAPI | `backend/app/` | REST API, health checks and metrics |
 | PostgreSQL + Alembic | `backend/alembic/` | Persistent equipment records and schema migration |
 | Docker Compose | `docker-compose.yml` | Local three-service stack |
-| GitHub Actions | `.github/workflows/dhruv-session21.yml` at repository root | Tests, builds, Trivy scans and GHCR publication |
+| GitHub Actions | `.github/workflows/dhruv-session21.yml` at repository root | Tests, image scans, publication and temporary Kubernetes smoke test |
 | Terraform | `terraform/` | VPC, public/private subnets, NAT, EKS and worker nodes |
 | Helm | `helm/labgear/` | Two app Deployments, Services, Ingress, HPA and PostgreSQL PVC |
 | Monitoring | `monitoring/` | Prometheus/Grafana settings and dashboard |
@@ -49,7 +49,9 @@ npm run build
 
 The repository-root workflow runs on pushes to `main` and on pull requests. It tests Python and the frontend first. On a push to `main`, it builds both images, fails on HIGH or CRITICAL findings from Trivy, then publishes SHA-tagged images as `ghcr.io/dhruvb2028/labgear-backend:<commit-sha>` and `ghcr.io/dhruvb2028/labgear-frontend:<commit-sha>`. Trivy checks operating-system packages and application dependencies in each image; a clean scan would mean no matching findings in that scan, not that the application is guaranteed secure. The GHCR packages must be made public, or the cluster needs an image-pull secret.
 
-The workflow file belongs at the repository root, so it is included separately from this folder. Its deployment job is manual and expects `KUBECONFIG_B64` and `LABGEAR_DB_PASSWORD` GitHub environment secrets. A green hosted run and actual GHCR packages will exist only after an authorized push.
+On each push to `main`, the workflow also starts a temporary kind cluster on a standard GitHub-hosted runner. It loads locally built images, installs the Helm chart, and checks the frontend, equipment checkout/return and metrics through the running Pods. This costs no AWS resources and the cluster is removed when the job ends. It is not a permanent public deployment or an EKS deployment.
+
+The workflow file belongs at the repository root, so it is included separately from this folder. Its separate production deployment job is manual and expects `KUBECONFIG_B64` and `LABGEAR_DB_PASSWORD` GitHub environment secrets. Do not run that job unless you have a cluster you intend to use and pay for.
 
 ## AWS and Kubernetes
 
