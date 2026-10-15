@@ -38,6 +38,10 @@ kubectl exec -n session11-demo dns-client -- nslookup external-docs
 
 On a local cluster, the LoadBalancer external IP may stay `pending` because no cloud provider is available. The NodePort can be tested with `minikube service backend-nodeport -n session11-demo --url`.
 
+I ran these Services in a temporary kind cluster. The client reached the ClusterIP backend and `web-0` through the headless Service; the LoadBalancer address stayed pending, as expected without a cloud load balancer ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38804694761/job/116662390775)).
+
+![Session 11 service output](screenshots/session-11.png)
+
 ## Clean up
 
 ```bash
