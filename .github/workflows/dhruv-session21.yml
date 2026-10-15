@@ -53,7 +53,7 @@ jobs:
       - name: Build ${{ matrix.component }} image
         run: docker build -t ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }} session21-python/Dhruv-Bansal-24BCS10114/${{ matrix.component }}
       - name: Scan ${{ matrix.component }} image
-        uses: aquasecurity/trivy-action@0.36.0
+        uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }}
           format: table
