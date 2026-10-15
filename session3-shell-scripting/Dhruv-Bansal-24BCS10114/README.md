@@ -25,3 +25,7 @@ Process list saved to sysinfo_output/process.log
 ```
 
 The script creates the `sysinfo_output` directory automatically. The main details are saved in `result.log`, while the output of `ps` is saved separately in `process.log`.
+
+I ran the script on a Linux GitHub Actions runner and captured its output and saved result file ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803157774/job/116657129714)).
+
+![Shell script output](screenshots/session-3.png)
