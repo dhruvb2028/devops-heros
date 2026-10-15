@@ -100,3 +100,7 @@ traceroute example.com
 ```
 
 This helps separate a local interface problem, a missing route, a DNS problem, and an application-level HTTP problem.
+
+The [GitHub Actions run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803157774/job/116657129265) checked interfaces, routes, DNS, and an HTTP response on a Linux runner. The screenshot contains that command output.
+
+![Networking command output](screenshots/session-4.png)
