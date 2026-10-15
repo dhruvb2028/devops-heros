@@ -2,6 +2,12 @@ name: Docker session demos
 
 on:
   workflow_dispatch:
+    inputs:
+      session:
+        description: Which Docker demo to run
+        type: choice
+        options: ['all', '8']
+        default: all
 
 permissions:
   contents: read
@@ -12,13 +18,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        include:
-          - session: 6
-            ref: session6-7-dhruv-bansal-24bcs10114
-          - session: 7
-            ref: session6-7-dhruv-bansal-24bcs10114
-          - session: 8
-            ref: session8-dhruv-bansal-24bcs10114
+        include: ${{ fromJSON(inputs.session == '8' && '[{"session":8,"ref":"session8-dhruv-bansal-24bcs10114"}]' || '[{"session":6,"ref":"session6-7-dhruv-bansal-24bcs10114"},{"session":7,"ref":"session6-7-dhruv-bansal-24bcs10114"},{"session":8,"ref":"session8-dhruv-bansal-24bcs10114"}]') }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -64,6 +64,14 @@ jobs:
           docker compose -f "$base/docker-compose.yml" ps
           docker network ls
           docker volume ls
+      - name: Show Session 8 container diagnostics
+        if: failure() && matrix.session == 8
+        run: |
+          base=session8-docker-networking-volume/Dhruv-Bansal-24BCS10114
+          docker compose -f "$base/docker-compose.yml" ps || true
+          docker compose -f "$base/docker-compose.yml" logs --tail=100 || true
+          docker inspect dhruv-bansal-24bcs10114-backend-1 \
+            --format '{{json .State.Health}}' || true
       - name: Install browser
         run: npx --yes playwright@1.64.1 install --with-deps chromium
       - name: Capture Session 6 pages
