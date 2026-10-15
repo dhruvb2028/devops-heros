@@ -20,6 +20,10 @@ curl http://localhost:8082/api
 
 The `/api` response shows `"status": "connected"` after the backend reaches the MySQL database. I used the service name `database` instead of an IP address because Compose provides DNS inside each network.
 
+The app running in Docker on a GitHub Actions runner is shown below. The page loads the backend response through NGINX; the [run log](https://github.com/dhruvb2028/devops-heros/actions/runs/38802946380/job/116656411902) has the container and API checks.
+
+![Docker networking demo](screenshots/networking.png)
+
 These commands show the networks and volume:
 
 ```bash
