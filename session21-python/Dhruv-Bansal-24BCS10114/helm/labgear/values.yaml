@@ -1,0 +1,25 @@
+backend:
+  image: ghcr.io/dhruvb2028/labgear-backend
+  tag: "set-a-commit-sha"
+  replicas: 2
+frontend:
+  image: ghcr.io/dhruvb2028/labgear-frontend
+  tag: "set-a-commit-sha"
+  replicas: 2
+database:
+  name: labgear
+  user: labgear
+  password: "change-this-before-deploying"
+  storageSize: 4Gi
+  storageClass: ""
+ingress:
+  enabled: true
+  className: nginx
+  host: labgear.local
+hpa:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 5
+  cpuTarget: 65
+monitoring:
+  serviceMonitor: false

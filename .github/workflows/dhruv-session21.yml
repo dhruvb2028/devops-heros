@@ -1,0 +1,99 @@
+name: LabGear capstone
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: session21-python/Dhruv-Bansal-24BCS10114
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Test API and migration
+        run: |
+          python -m pip install -r backend/requirements-dev.txt
+          cd backend
+          python -m pytest -q
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: npm
+          cache-dependency-path: session21-python/Dhruv-Bansal-24BCS10114/frontend/package-lock.json
+      - name: Test and build frontend
+        run: |
+          cd frontend
+          npm ci
+          npm test
+          npm run build
+
+  images:
+    if: github.event_name == 'push'
+    needs: test
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      matrix:
+        component: [backend, frontend]
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build ${{ matrix.component }} image
+        run: docker build -t ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }} session21-python/Dhruv-Bansal-24BCS10114/${{ matrix.component }}
+      - name: Scan ${{ matrix.component }} image
+        uses: aquasecurity/trivy-action@0.36.0
+        with:
+          image-ref: ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }}
+          format: table
+          vuln-type: os,library
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+      - name: Sign in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: Publish ${{ matrix.component }} image
+        run: docker push ghcr.io/dhruvb2028/labgear-${{ matrix.component }}:${{ github.sha }}
+
+  deploy:
+    if: github.event_name == 'workflow_dispatch'
+    needs: test
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - uses: azure/setup-helm@v4
+        with:
+          version: v3.22.0
+      - name: Configure cluster access
+        env:
+          KUBECONFIG_B64: ${{ secrets.KUBECONFIG_B64 }}
+        run: |
+          test -n "$KUBECONFIG_B64"
+          printf '%s' "$KUBECONFIG_B64" | base64 -d > "$RUNNER_TEMP/kubeconfig"
+          chmod 600 "$RUNNER_TEMP/kubeconfig"
+      - name: Install current images
+        env:
+          KUBECONFIG: ${{ runner.temp }}/kubeconfig
+          DB_PASSWORD: ${{ secrets.LABGEAR_DB_PASSWORD }}
+        run: |
+          test -n "$DB_PASSWORD"
+          helm upgrade --install labgear session21-python/Dhruv-Bansal-24BCS10114/helm/labgear \
+            --namespace labgear --create-namespace \
+            -f session21-python/Dhruv-Bansal-24BCS10114/helm/labgear/values-prod.yaml \
+            --set backend.tag="$GITHUB_SHA" --set frontend.tag="$GITHUB_SHA" \
+            --set-string database.password="$DB_PASSWORD" --wait --timeout 10m

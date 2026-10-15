@@ -1,0 +1,19 @@
+# Apply only during the troubleshooting exercise, then delete this Deployment.
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: labgear-broken-image
+  namespace: labgear
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: labgear-broken-image
+  template:
+    metadata:
+      labels:
+        app: labgear-broken-image
+    spec:
+      containers:
+        - name: missing
+          image: ghcr.io/dhruvb2028/labgear-backend:tag-that-does-not-exist

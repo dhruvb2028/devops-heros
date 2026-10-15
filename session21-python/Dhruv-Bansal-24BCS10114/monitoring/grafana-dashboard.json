@@ -1,0 +1,31 @@
+{
+  "title": "LabGear API",
+  "uid": "labgear-api",
+  "schemaVersion": 39,
+  "version": 1,
+  "refresh": "15s",
+  "panels": [
+    {
+      "id": 1,
+      "title": "Requests per second",
+      "type": "timeseries",
+      "gridPos": { "h": 9, "w": 24, "x": 0, "y": 0 },
+      "targets": [
+        {
+          "expr": "sum(rate(http_requests_total{job=~\".*labgear-backend.*\"}[5m]))",
+          "legendFormat": "All API requests",
+          "refId": "A"
+        }
+      ]
+    },
+    {
+      "id": 2,
+      "title": "Application target up",
+      "type": "stat",
+      "gridPos": { "h": 5, "w": 8, "x": 0, "y": 9 },
+      "targets": [
+        { "expr": "up{job=~\".*labgear-backend.*\"}", "refId": "A" }
+      ]
+    }
+  ]
+}

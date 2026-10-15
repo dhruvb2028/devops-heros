@@ -1,0 +1,12 @@
+# This selector is deliberately wrong; it will have no endpoints.
+apiVersion: v1
+kind: Service
+metadata:
+  name: labgear-broken-service
+  namespace: labgear
+spec:
+  selector:
+    app: labgear-backend-typo
+  ports:
+    - port: 8000
+      targetPort: 8000

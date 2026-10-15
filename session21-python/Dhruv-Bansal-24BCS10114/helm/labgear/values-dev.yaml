@@ -1,0 +1,8 @@
+backend:
+  image: labgear-backend
+  tag: "local"
+frontend:
+  image: labgear-frontend
+  tag: "local"
+ingress:
+  host: labgear.local
