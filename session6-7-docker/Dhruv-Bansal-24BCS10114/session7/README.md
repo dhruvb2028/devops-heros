@@ -13,3 +13,9 @@ docker inspect session7-node
 ```
 
 Keeping the build and runtime stages separate makes the final image smaller and avoids carrying unnecessary build files into the running container.
+
+## Screenshot
+
+The [Session 7 job](https://github.com/dhruvb2028/devops-heros/actions/runs/38801696689/job/116652084887) built the multi-stage image, ran it, checked its HTTP response, and printed `docker history`. This screenshot shows the response from that container.
+
+![Response from the multi-stage Node image](screenshots/node.png)
