@@ -1,0 +1,66 @@
+name: Command session demos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        session: [2, 3, 4, 5]
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: session${{ matrix.session }}-dhruv-bansal-24bcs10114
+      - name: Run Session ${{ matrix.session }} exercise
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          set -euo pipefail
+          case "$SESSION" in
+            2)
+              cd session2-linux/Dhruv-Bansal-24BCS10114
+              { echo '$ bash links-lab.sh --verify'; bash links-lab.sh --verify; echo '$ df -h /'; df -h /; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+            3)
+              cd session3-shell-scripting/Dhruv-Bansal-24BCS10114
+              { echo '$ bash script.sh'; printf '%s\n' 'Dhruv Bansal' '24BCS10114' 'Shell scripting demo' | bash script.sh; echo '$ cat sysinfo_output/result.log'; cat sysinfo_output/result.log; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+            4)
+              { echo '$ ip -brief address'; ip -brief address; echo '$ ip route'; ip route; echo '$ getent hosts example.com'; getent hosts example.com; echo '$ curl -I https://example.com'; curl --fail --head --silent --show-error https://example.com; echo '$ hostname'; hostname; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+            5)
+              cd session5-git-github/Dhruv-Bansal-24BCS10114
+              { echo '$ bash cherry-pick-lab.sh --self-test'; bash cherry-pick-lab.sh --self-test; echo '$ git --version'; git --version; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+          esac
+      - name: Make output screenshot
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          python - <<'PY'
+          import html
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ['RUNNER_TEMP'], 'output.txt').read_text(errors='replace')
+          page = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                  'body{margin:0;padding:24px;background:#151b23;color:#e6edf3;font:16px/1.5 monospace}'
+                  'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><pre>'
+                  + html.escape(output) + '</pre></body></html>')
+          Path(os.environ['RUNNER_TEMP'], 'output.html').write_text(page, encoding='utf-8')
+          PY
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1200,700' --full-page \
+            "file://$RUNNER_TEMP/output.html" "screenshots/session-$SESSION.png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-${{ matrix.session }}-command-output
+          path: screenshots/*.png
+          retention-days: 1
