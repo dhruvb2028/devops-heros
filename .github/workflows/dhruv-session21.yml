@@ -123,6 +123,40 @@ jobs:
           kubectl exec -n labgear deployment/labgear-backend -- python -c \
             'import urllib.request; body = urllib.request.urlopen("http://localhost:8000/metrics").read(); assert b"http_requests_total" in body or b"http_request_duration_seconds" in body'
           echo 'Kubernetes smoke test passed'
+      - name: Capture live app screenshots
+        run: |
+          set -euo pipefail
+          kubectl port-forward -n labgear svc/labgear-frontend 3000:8080 > "$RUNNER_TEMP/port-forward-screenshots.log" 2>&1 &
+          forward_pid=$!
+          trap 'kill "$forward_pid" 2>/dev/null || true' EXIT
+          for attempt in {1..30}; do
+            if curl --silent --fail http://localhost:3000/health > /dev/null; then break; fi
+            sleep 2
+          done
+          curl --fail --silent -X POST http://localhost:3000/api/equipment \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"Digital oscilloscope","category":"Electronics","location":"Lab B"}' > /dev/null
+          camera=$(curl --fail --silent -X POST http://localhost:3000/api/equipment \
+            -H 'Content-Type: application/json' \
+            -d '{"name":"Thermal camera","category":"Camera","location":"Lab C"}' | jq -r '.id')
+          test "$camera" != 'null'
+          mkdir -p "$RUNNER_TEMP/labgear-screenshots"
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --browser chromium --viewport-size '1440,900' \
+            --wait-for-timeout 2000 --full-page http://localhost:3000 \
+            "$RUNNER_TEMP/labgear-screenshots/catalog.png"
+          curl --fail --silent -X POST "http://localhost:3000/api/equipment/$camera/checkout" \
+            -H 'Content-Type: application/json' \
+            -d '{"borrower":"Demo student","due_date":"2030-12-31"}' > /dev/null
+          npx --yes playwright@1.64.1 screenshot --browser chromium --viewport-size '1440,900' \
+            --wait-for-timeout 2000 --full-page http://localhost:3000 \
+            "$RUNNER_TEMP/labgear-screenshots/checked-out.png"
+      - uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: labgear-live-screenshots
+          path: ${{ runner.temp }}/labgear-screenshots/*.png
+          retention-days: 1
       - name: Show cluster state on failure
         if: failure()
         run: |
