@@ -64,8 +64,9 @@ jobs:
               11)
                 kubectl apply -f backend-deployment.yaml -f clusterip.yaml -f nodeport.yaml -f loadbalancer.yaml -f externalname.yaml -f headless.yaml -f headless-statefulset.yaml -f client-pod.yaml
                 kubectl rollout status deployment/backend -n "$NAMESPACE" --timeout=180s
+                kubectl rollout status statefulset/web -n "$NAMESPACE" --timeout=180s
                 kubectl wait --for=condition=Ready pod/dns-client -n "$NAMESPACE" --timeout=180s
-                kubectl exec -n "$NAMESPACE" dns-client -- wget -qO- http://backend-clusterip
+                kubectl exec -n "$NAMESPACE" dns-client -- wget -qO- http://backend-clusterip | grep 'Welcome to nginx'
                 kubectl exec -n "$NAMESPACE" dns-client -- nslookup backend-headless
                 kubectl get pods,svc,endpoints -n "$NAMESPACE"
                 ;;
