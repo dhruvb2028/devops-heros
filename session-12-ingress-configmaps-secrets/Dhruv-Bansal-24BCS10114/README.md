@@ -32,6 +32,10 @@ kubectl get secret database-config -n session12-demo -o jsonpath='{.data.DB_USER
 
 Base64 is only encoding, not encryption. I used `echo -n` while preparing the values so an extra newline was not added. If an environment value in the ConfigMap changes, the Deployment needs a restart before the container receives the new value.
 
+I applied these manifests in a temporary kind cluster. Both Deployments became ready and the Ingress resource was created ([run](https://github.com/dhruvb2028/devops-heros/actions/runs/38803634387/job/116658761223)). This run did not install an ingress controller, so it does not demonstrate external routing.
+
+![Session 12 Kubernetes run](screenshots/session-12.png)
+
 ## Clean up
 
 ```bash
