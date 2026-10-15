@@ -64,7 +64,7 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: docker build -t dhruv-devsecops:ci session-17-devsecops/Dhruv-Bansal-24BCS10114
-      - uses: aquasecurity/trivy-action@0.36.0
+      - uses: aquasecurity/trivy-action@v0.36.0
         with:
           image-ref: dhruv-devsecops:ci
           format: table
