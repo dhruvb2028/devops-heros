@@ -1,0 +1,105 @@
+name: Kubernetes session demos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - session: 9
+            ref: session9-dhruv-bansal-24bcs10114
+            folder: session9-k8s/Dhruv-Bansal-24BCS10114
+            namespace: session9-demo
+          - session: 10
+            ref: session10-dhruv-bansal-24bcs10114
+            folder: session10-k8s-core-objects/Dhruv-Bansal-24BCS10114
+            namespace: session10-demo
+          - session: 11
+            ref: session11-dhruv-bansal-24bcs10114
+            folder: session-11-kubernetes-services/Dhruv-Bansal-24BCS10114
+            namespace: session11-demo
+          - session: 12
+            ref: session12-dhruv-bansal-24bcs10114
+            folder: session-12-ingress-configmaps-secrets/Dhruv-Bansal-24BCS10114
+            namespace: session12-demo
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ matrix.ref }}
+      - uses: helm/kind-action@v1.14.0
+      - name: Run session exercise
+        env:
+          SESSION: ${{ matrix.session }}
+          FOLDER: ${{ matrix.folder }}
+          NAMESPACE: ${{ matrix.namespace }}
+        run: |
+          set -euo pipefail
+          cd "$FOLDER"
+          {
+            echo '$ kubectl get nodes'
+            kubectl get nodes
+            echo '$ kubectl apply -f namespace.yaml'
+            kubectl apply -f namespace.yaml
+            case "$SESSION" in
+              9)
+                kubectl apply -f nginx-pod.yaml
+                kubectl wait --for=condition=Ready pod/nginx-basics -n "$NAMESPACE" --timeout=180s
+                kubectl get pods -n "$NAMESPACE" -o wide
+                kubectl exec -n "$NAMESPACE" nginx-basics -- nginx -v
+                ;;
+              10)
+                kubectl apply -f pod.yaml -f replicaset.yaml -f deployment-v1.yaml -f daemonset.yaml
+                kubectl rollout status deployment/web-deployment -n "$NAMESPACE" --timeout=180s
+                kubectl apply -f deployment-v2.yaml
+                kubectl rollout status deployment/web-deployment -n "$NAMESPACE" --timeout=180s
+                kubectl get pods,rs,deploy,ds -n "$NAMESPACE"
+                ;;
+              11)
+                kubectl apply -f backend-deployment.yaml -f clusterip.yaml -f nodeport.yaml -f loadbalancer.yaml -f externalname.yaml -f headless.yaml -f headless-statefulset.yaml -f client-pod.yaml
+                kubectl rollout status deployment/backend -n "$NAMESPACE" --timeout=180s
+                kubectl wait --for=condition=Ready pod/dns-client -n "$NAMESPACE" --timeout=180s
+                kubectl exec -n "$NAMESPACE" dns-client -- wget -qO- http://backend-clusterip
+                kubectl exec -n "$NAMESPACE" dns-client -- nslookup backend-headless
+                kubectl get pods,svc,endpoints -n "$NAMESPACE"
+                ;;
+              12)
+                kubectl apply -f configmap.yaml -f secret.yaml -f frontend.yaml -f backend.yaml -f ingress.yaml
+                kubectl rollout status deployment/frontend -n "$NAMESPACE" --timeout=180s
+                kubectl rollout status deployment/backend -n "$NAMESPACE" --timeout=180s
+                kubectl get pods,svc,ingress -n "$NAMESPACE"
+                kubectl exec -n "$NAMESPACE" deployment/backend -- printenv ENVIRONMENT
+                ;;
+            esac
+          } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+      - name: Capture output
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          python - <<'PY'
+          import html
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ['RUNNER_TEMP'], 'output.txt').read_text(errors='replace')
+          page = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                  'body{margin:0;padding:24px;background:#151b23;color:#e6edf3;font:16px/1.5 monospace}'
+                  'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><pre>'
+                  + html.escape(output) + '</pre></body></html>')
+          Path(os.environ['RUNNER_TEMP'], 'output.html').write_text(page, encoding='utf-8')
+          PY
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1200,700' --full-page \
+            "file://$RUNNER_TEMP/output.html" "screenshots/session-$SESSION.png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-${{ matrix.session }}-kubernetes-output
+          path: screenshots/*.png
+          retention-days: 1
