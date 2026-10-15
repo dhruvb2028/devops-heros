@@ -1,0 +1,63 @@
+name: CI and Terraform session demos
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  capture:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        session: [16, 18, 19]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+        if: matrix.session != 16
+      - name: Run exercise
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          set -euo pipefail
+          case "$SESSION" in
+            16)
+              cd session-16-github-actions/Dhruv-Bansal-24BCS10114
+              { echo '$ python -m unittest discover -s tests -v'; python -m unittest discover -s tests -v; echo '$ python -m app.calculator'; python -m app.calculator; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+            18)
+              cd session18-terraform-iac/Dhruv-Bansal-24BCS10114
+              { echo '$ terraform init'; terraform init -input=false -no-color; echo '$ terraform fmt -check'; terraform fmt -check; echo '$ terraform validate'; terraform validate -no-color; echo '$ terraform plan'; terraform plan -input=false -no-color -out=lab.tfplan; echo '$ terraform apply'; terraform apply -input=false -no-color lab.tfplan; echo '$ terraform output generated_file'; terraform output -no-color generated_file; echo '$ terraform state list'; terraform state list; echo '$ terraform destroy'; terraform destroy -auto-approve -no-color; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+            19)
+              cd session19-cloud-terraform/Dhruv-Bansal-24BCS10114
+              { echo '$ terraform init'; terraform init -backend=false -input=false -no-color; echo '$ terraform fmt -check'; terraform fmt -check; echo '$ terraform validate'; terraform validate -no-color; echo 'AWS resources were not created.'; } 2>&1 | tee "$RUNNER_TEMP/output.txt"
+              ;;
+          esac
+      - name: Capture output
+        env:
+          SESSION: ${{ matrix.session }}
+        run: |
+          python - <<'PY'
+          import html
+          import os
+          from pathlib import Path
+
+          output = Path(os.environ['RUNNER_TEMP'], 'output.txt').read_text(errors='replace')
+          page = ('<!doctype html><html><head><meta charset="utf-8"><style>'
+                  'body{margin:0;padding:24px;background:#151b23;color:#e6edf3;font:16px/1.5 monospace}'
+                  'pre{white-space:pre-wrap;overflow-wrap:anywhere}</style></head><body><pre>'
+                  + html.escape(output) + '</pre></body></html>')
+          Path(os.environ['RUNNER_TEMP'], 'output.html').write_text(page, encoding='utf-8')
+          PY
+          mkdir -p screenshots
+          npx --yes playwright@1.64.1 install --with-deps chromium
+          npx --yes playwright@1.64.1 screenshot --viewport-size '1200,700' --full-page \
+            "file://$RUNNER_TEMP/output.html" "screenshots/session-$SESSION.png"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: session-${{ matrix.session }}-output
+          path: screenshots/*.png
+          retention-days: 1
